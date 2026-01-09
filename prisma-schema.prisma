@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ReadingSession {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  actorId          String   // stable hash derived from cookie token; internal "user"
+  topic            String   // e.g., "love", "money", "general", "career"
+  context          Json?    // optional: additional context from user
+  mode             String   // "collective" | "querent"
+  sign             String?  // e.g., "Scorpio"
+  querentName      String?  // first name if specific reading
+  querentSun       String?  // Sun sign
+  querentRising    String?  // Rising sign (optional)
+  length           String   // "short" | "medium" | "deep"
+  readingDate      DateTime // date of the reading (affects astrology)
+  timezone         String   // default "America/New_York"
+
+  // Voice Pack selection & snapshot
+  voicePackId      String?
+  voicePackSnapshot Json?   // store exact resolved voice pack used
+
+  part1Script      String?  // Cold open + intro + grounding
+  spreadRawText    String?  // transcribed cards (raw user speech)
+  spreadJson       Json?    // parsed & validated spread: { "currentSituation": [...], ... }
+  spreadNeedsReview Boolean @default(false) // if parser found ambiguity
+
+  astrologyJson    Json?    // { moon: {...}, transits: [...], sources: [...] }
+  part2Script      String?  // spread walkthrough + actions + outro
+  fullScript       String?  // part1 + part2 combined
+
+  part2Versions    Json?    // append-only array of Part 2 regenerations
+  usageJson        Json?    // { "calls": [...], "totalCostUsd": 1.25, "tokensUsed": ... }
+  status           String   // "setup" | "part1-ready" | "awaiting-spread" | "spread-recorded" | "part2-generating" | "complete" | "error"
+  errorJson        Json?    // { "message": "...", "code": "...", "timestamp": "..." }
+
+  @@index([actorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model VoicePack {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  name             String   @unique
+  description      String?
+  isDefault        Boolean  @default(false)
+
+  // JSON overrides validated by Zod schema in voicePacks.ts
+  // Must never weaken hard rules (catchphrase, realism line, no "this card means", etc.)
+  overridesJson    Json     // voicePackSchema validated object
+
+  @@index([isDefault])
+}
