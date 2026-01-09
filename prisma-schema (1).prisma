@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model ReadingSession {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  actorId          String   // stable hash derived from cookie token
+  topic            String   // e.g., "love", "money", "general"
+  context          String?  // optional JSON string
+  mode             String   // "collective" | "querent"
+  sign             String?  // e.g., "Scorpio"
+  querentName      String?  // first name if specific reading
+  querentSun       String?  // Sun sign
+  querentRising    String?  // Rising sign (optional)
+  length           String   // "short" | "medium" | "deep"
+  readingDate      DateTime // date of the reading
+  timezone         String   // default "America/New_York"
+
+  // Voice Pack selection & snapshot
+  voicePackId      String?
+  voicePackSnapshot String?  // JSON string of resolved voice pack
+
+  part1Script      String?  // Cold open + intro + grounding
+  spreadRawText    String?  // transcribed cards (raw user speech)
+  spreadJson       String?  // JSON string: parsed & validated spread
+  spreadNeedsReview Boolean  @default(false) // if parser found ambiguity
+
+  astrologyJson    String?  // JSON string: moon phase, transits, aspects
+  part2Script      String?  // spread walkthrough + actions + outro
+  fullScript       String?  // part1 + part2 combined
+
+  part2Versions    String?  // JSON string: array of Part 2 regenerations
+  usageJson        String?  // JSON string: cost tracking
+  status           String   // "setup" | "part1-ready" | "spread-recorded" | "part2-generating" | "complete" | "error"
+  errorJson        String?  // JSON string: error details
+
+  @@index([actorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model VoicePack {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  name             String   @unique
+  description      String?
+  isDefault        Boolean  @default(false)
+
+  // JSON string: Zod-validated voice pack overrides
+  overridesJson    String
+
+  @@index([isDefault])
+}
